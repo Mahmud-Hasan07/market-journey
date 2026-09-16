@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Market Journey — Trading Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A1613; --panel:#0F1E1A; --panel-2:#142A24; --border:#20342D;
+    --text:#EAF1EC; --text-dim:#8FA69B; --text-dimmer:#5E756B;
+    --gold:#D9A94E; --gold-soft:rgba(217,169,78,.14);
+    --green:#33D693; --green-soft:rgba(51,214,147,.13);
+    --red:#F0596B; --red-soft:rgba(240,89,107,.13);
+    --blue:#6FA8F5; --blue-soft:rgba(111,168,245,.13);
+    --radius:16px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ color-scheme: dark; }
+  }
+  :root[data-theme="dark"]{ color-scheme: dark; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); }
+  body{
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .head-font{ font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif; }
+  .mono{ font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace; }
+  #shell{ max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; display:flex; flex-direction:column; }
+  ::selection{ background:var(--gold-soft); }
+  a{ color:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+  input[type="range"]{ accent-color:var(--gold); }
+
+  .btn{ border:none; border-radius:14px; padding:14px 18px; font-weight:600; font-size:15px; transition:transform .08s ease, opacity .15s ease; }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:linear-gradient(135deg,var(--gold),#C68F35); color:#1B1305; }
+  .btn-primary:disabled{ background:#2A3530; color:var(--text-dimmer); }
+  .btn-ghost{ background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
+  .btn-outline{ background:transparent; color:var(--gold); border:1px solid var(--gold); }
+  .btn-danger{ background:var(--red-soft); color:var(--red); border:1px solid rgba(240,89,107,.35); }
+  .btn-buy{ background:var(--green-soft); color:var(--green); border:1px solid rgba(51,214,147,.4); }
+  .btn-block{ width:100%; }
+
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .pill-green{ background:var(--green-soft); color:var(--green); }
+  .pill-red{ background:var(--red-soft); color:var(--red); }
+  .pill-gold{ background:var(--gold-soft); color:var(--gold); }
+  .pill-blue{ background:var(--blue-soft); color:var(--blue); }
+
+  .scr{ flex:1; display:flex; flex-direction:column; padding:22px 18px 100px; min-height:100vh; }
+  .scr-tight{ padding-bottom:22px; }
+
+  /* Ticker tape */
+  .ticker-wrap{ overflow:hidden; background:var(--panel-2); border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:20; }
+  .ticker-track{ display:inline-block; padding:7px 0; animation:ticker 24s linear infinite; }
+  .ticker-track span{ margin-right:36px; font-size:12.5px; color:var(--text-dim); }
+  @keyframes ticker{ 0%{ transform:translateX(0);} 100%{ transform:translateX(-50%);} }
+
+  /* Bottom nav */
+  .navbar{ position:sticky; bottom:0; left:0; right:0; display:flex; background:var(--panel); border-top:1px solid var(--border); z-index:20; }
+  .navbtn{ flex:1; background:none; border:none; padding:10px 4px 12px; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--text-dimmer); font-size:11px; font-weight:600; }
+  .navbtn.active{ color:var(--gold); }
+  .navbtn .ic{ font-size:18px; line-height:1; }
+
+  .row{ display:flex; align-items:center; justify-content:space-between; }
+  .stat-num{ font-family:'Space Grotesk',sans-serif; font-weight:700; }
+
+  .company-row{ display:flex; width:100%; text-align:left; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:13px 14px; gap:12px; align-items:center; }
+  .co-icon{ width:38px; height:38px; border-radius:10px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+
+  .progress-track{ width:100%; height:6px; background:var(--panel-2); border-radius:99px; overflow:hidden; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg,var(--gold),#F0C97A); border-radius:99px; }
+
+  .timerbar-track{ width:100%; height:5px; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden; margin-top:10px; }
+  .timerbar-fill{ height:100%; background:var(--red); border-radius:99px; transition:width 1s linear; }
+
+  .opt-btn{ width:100%; text-align:left; background:var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:13px 15px; color:var(--text); margin-bottom:9px; }
+  .opt-btn:active{ border-color:var(--gold); }
+  .opt-btn .lbl{ font-weight:700; font-size:14.5px; }
+  .opt-btn .sub{ font-size:12.5px; color:var(--text-dim); margin-top:2px; }
+
+  .news-item{ display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .news-item:last-child{ border-bottom:none; }
+  .news-dot{ width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+
+  input.field{ width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; color:var(--text); font-size:15px; font-family:'IBM Plex Mono',monospace; }
+  input.field:focus{ outline:none; border-color:var(--gold); }
+  input.field-text{ font-family:'Inter',sans-serif; }
+
+  .seg{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:3px; gap:3px; }
+  .seg button{ flex:1; background:none; border:none; padding:9px 4px; border-radius:9px; color:var(--text-dim); font-weight:600; font-size:13px; }
+  .seg button.on{ background:var(--gold); color:#1B1305; }
+
+  .divider{ height:1px; background:var(--border); margin:16px 0; }
+  canvas{ display:block; width:100%; }
+  h1,h2,h3{ margin:0; }
+  p{ margin:0; }
+  .fade-in{ animation:fadein .25s ease; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .ticker-track{ animation:none; } .fade-in{ animation:none; } }
+</style>
+</head>
+<body>
+<div id="shell"><div id="app"></div></div>
+
+<script>
+/* ============================================================
+   MARKET JOURNEY — vanilla JS trading simulator
+   ============================================================ */
+
+/* ---------------- constants & data ---------------- */
+
+const START_CASH = 10000;
+
+const COMPANIES = [
+  { id:'greentech', ticker:'GRN', name:'GreenTech', emoji:'🌱', sector:'Renewable Energy', color:'#33D693',
+    desc:'Builds solar panels and wind turbines for homes and businesses.', risk:'Medium', basePrice:120, volatility:0.058, drift:0.0012 },
+  { id:'technova', ticker:'TCN', name:'TechNova', emoji:'💻', sector:'Software', color:'#6FA8F5',
+    desc:'Makes cloud tools and apps used by small businesses.', risk:'High', basePrice:85, volatility:0.095, drift:0.0003 },
+  { id:'healthcore', ticker:'HLC', name:'HealthCore', emoji:'🩺', sector:'Healthcare', color:'#F17FB0',
+    desc:'Develops everyday medical devices and health checkups.', risk:'Low', basePrice:60, volatility:0.033, drift:0.0009 },
+  { id:'automotion', ticker:'ATM', name:'AutoMotion', emoji:'🚐', sector:'Transportation', color:'#F2BB4B',
+    desc:'Makes electric delivery vans for local businesses.', risk:'Medium', basePrice:95, volatility:0.064, drift:0.0005 },
+  { id:'foodworld', ticker:'FDW', name:'FoodWorld', emoji:'🛒', sector:'Food & Retail', color:'#2DD4BF',
+    desc:'Runs a chain of neighborhood grocery stores.', risk:'Low', basePrice:40, volatility:0.027, drift:0.0005 },
+  { id:'energyplus', ticker:'NRG', name:'EnergyPlus', emoji:'🛢️', sector:'Traditional Energy', color:'#F2795A',
+    desc:'Supplies oil and gas to homes and factories.', risk:'Medium-High', basePrice:70, volatility:0.053, drift:-0.0009 },
+];
+
+const SCRIPT_MAP = {
+  10:{2:'excitement',3:'fomo',4:'panic',6:'badnews',7:'diversification',8:'crash',9:'recovery'},
+  15:{3:'excitement',5:'fomo',6:'panic',9:'badnews',11:'diversification',12:'crash',14:'recovery'},
+  30:{5:'excitement',9:'fomo',13:'panic',17:'badnews',21:'diversification',25:'crash',28:'recovery'},
+};
+
+const GLOSSARY = [
+  { id:'stock', term:'Stock', def:'A small ownership share in a company.' },
+  { id:'portfolio', term:'Portfolio', def:'All of your investments together.' },
+  { id:'dividend', term:'Dividend', def:'Money some companies pay to shareholders.' },
+  { id:'volatility', term:'Volatility', def:"How much and how quickly an investment's price changes." },
+  { id:'diversification', term:'Diversification', def:'Spreading investments across different assets.' },
+  { id:'risk', term:'Risk', def:"The possibility that an investment's value may fall or behave differently than expected." },
+  { id:'bull', term:'Bull Market', def:'A period when prices generally rise.' },
+  { id:'bear', term:'Bear Market', def:'A period when prices generally fall.' },
+  { id:'avgcost', term:'Average Cost', def:'The average price you paid per share across all your purchases.' },
+  { id:'unrealized', term:'Unrealized P/L', def:"A gain or loss you're currently sitting on but haven't locked in by selling yet." },
+];
+
+const NEWS_POS = ["{c} unveils a product line that has customers excited.","{c} beats investor expectations this quarter.","Analysts upgrade {c} on strong demand.","{c} signs a major new client.","{c} announces cost cuts that boost margins.","{c} gets a wave of positive press coverage."];
+const NEWS_NEG = ["{c} recalls a batch of products.","{c} warns growth is slowing.","A senior executive exits {c} unexpectedly.","{c} faces fresh regulatory questions.","{c} loses a major contract to a rival.","{c} disappoints with weak guidance."];
+const NEWS_NEUTRAL = ["Markets trade quietly as investors await fresh data.","{c} holds its annual investor day today.","Trading volumes are lighter than usual this morning.","Analysts are divided on where the market goes next."];
+const RUMOR_POS = ["Traders are whispering {c} could beat expectations soon.","Insiders hint {c} has good news coming.","Chatter is building that {c} is about to land a big deal.","Some analysts are quietly bullish on {c} heading into tomorrow."];
+const RUMOR_NEG = ["Rumors suggest {c} may be facing trouble behind the scenes.","Some traders are betting against {c} heading into tomorrow.","Whispers point to disappointing news brewing at {c}.","A few analysts are growing cautious on {c}."];
+
+const LESSONS = {
+  'excitement:sell':{title:'Locking in gains',text:'Selling after a rise guarantees the profit you have right now — but if the price keeps climbing, you miss the extra gains.'},
+  'excitement:hold':{title:'Staying invested',text:'Holding lets you keep any further upside, but a rally can reverse just as quickly as it appeared.'},
+  'excitement:buy':{title:'Adding to a winner',text:'Buying more after a rise increases your potential reward, but also how much you would lose if it falls back.'},
+  'excitement:wait':{title:'Watching from the side',text:'Waiting protects you from buying at a peak, but you might miss out if the price keeps rising without you.'},
+  'panic:sell':{title:'Cutting your losses',text:'Selling during a drop stops further losses, but it locks in the loss — even if the price later recovers.'},
+  'panic:hold':{title:'Riding out the storm',text:'Holding avoids locking in a loss, but there is no guarantee of recovery, and it could fall further.'},
+  'panic:buy':{title:'Buying the dip',text:'Buying more at a lower price can pay off on a recovery, but risks more money on something currently falling.'},
+  'panic:avoid':{title:'Staying cautious',text:'Avoiding a falling stock protects your cash, but you give up any chance of a rebound.'},
+  'fomo:buy':{title:'Chasing the hype',text:'Jumping in during a hype spike can work out, but prices driven by excitement often cool off just as fast as they rose.'},
+  'fomo:wait':{title:'Letting the hype pass',text:'Waiting can protect you from buying at an inflated price — though you might miss a genuine move.'},
+  'badnews:sell':{title:'Moving on',text:'Selling after bad news avoids further exposure, but one disappointing report does not always reflect long-term value.'},
+  'badnews:hold':{title:'Waiting for clarity',text:'Holding gives the company a chance to recover, but keeps you exposed if the news reflects a bigger problem.'},
+  'badnews:buy':{title:'Betting on a rebound',text:'Buying after bad news can pay off if the market overreacted — but it is a bet, not a certainty.'},
+  'badnews:avoid':{title:'Playing it safe',text:'Steering clear avoids the uncertainty, but you also miss out if the company bounces back.'},
+  'diversification:sell':{title:'Reducing exposure',text:'Selling after a scandal limits further damage — a reminder of why spreading money across companies limits any single shock.'},
+  'diversification:hold':{title:'Feeling concentration risk',text:"Holding through this shows why concentration is risky: one company's bad day becomes your bad day."},
+  'diversification:acknowledge':{title:'A lesson worth remembering',text:"Notice how one company's scandal barely touches a spread-out portfolio, but could sink a concentrated one."},
+  'crash:sell':{title:'Moving to cash',text:'Selling everything stops further paper losses, but locks them in and misses any recovery that follows.'},
+  'crash:hold':{title:'Staying the course',text:'Markets have historically recovered from downturns, but holding means tolerating the discomfort of the drop.'},
+  'crash:buy':{title:'Investing during the dip',text:'Buying during a downturn gets you shares at lower prices, but there is no way to know if it falls further first.'},
+  'flash-dip:buy':{title:'Quick entry',text:'Acting fast on a dip can pay off, but split-second decisions leave little room to check your reasoning.'},
+  'flash-dip:skip':{title:'Discipline over impulse',text:'Skipping a fast-moving opportunity protects you from acting without a full picture — even if this one would have worked out.'},
+  'flash-spike:sell':{title:'Taking the win',text:'Cashing out on a spike locks in a real gain, but the position could also have kept climbing.'},
+  'flash-spike:hold':{title:'Trusting the trend',text:'Holding through a spike keeps your upside open, but spikes can fade just as fast as they appeared.'},
+};
+
+/* ---------------- helpers ---------------- */
+
+const $ = (sel,root)=> (root||document).querySelector(sel);
+const fmt$ = n => '€' + Math.round(n).toLocaleString('en-US');
+const fmtPct = n => (n>=0?'+':'') + n.toFixed(1) + '%';
+const rnd = (a,b)=> a + Math.random()*(b-a);
+const clamp = (n,a,b)=> Math.max(a,Math.min(b,n));
+const byId = id => COMPANIES.find(c=>c.id===id);
+
+function freshCompanies(){
+  const o = {};
+  COMPANIES.forEach(c=>{ o[c.id] = Object.assign({},c,{ price:c.basePrice, history:[{day:1,price:c.basePrice}] }); });
+  return o;
+}
+
+const SAVE_KEY = 'marketJourney_save_v2';
+function saveGame(){
+  if(!S) return;
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){ /* storage unavailable */ }
+}
+function loadGame(){
+  try{ const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+function portfolioValue(state){
+  let v = state.cash;
+  Object.keys(state.holdings).forEach(id=>{
+    const h = state.holdings[id];
+    if(h && h.shares>0) v += h.shares * state.companies[id].price;
+  });
+  return v;
+}
+function avgCost(h){ return (h && h.shares>0) ? h.cost/h.shares : 0; }
+function investedTotal(state){ return portfolioValue(state) - state.cash; }
+
+function stepPrice(c, bias){
+  let drift = c.drift;
+  if(bias){ drift += bias.reliable ? bias.sign*0.028 : -bias.sign*0.016; }
+  const change = drift + (Math.random()-0.5) * c.volatility * 2;
+  return Math.max(2, c.price * (1+change));
+}
+
+function pickTarget(companies, holdings, opts){
+  opts = opts || {};
+  const heldIds = Object.keys(holdings).filter(id=> holdings[id] && holdings[id].shares>0);
+  if(opts.preferHeld && heldIds.length){
+    let best=heldIds[0], bestVal=-1;
+    heldIds.forEach(id=>{ const val = holdings[id].shares*companies[id].price; if(val>bestVal){bestVal=val; best=id;} });
+    return best;
+  }
+  if(opts.preferNotHeld){
+    const notHeld = Object.keys(companies).filter(id=> !holdings[id] || holdings[id].shares===0);
+    if(notHeld.length) return notHeld[Math.floor(Math.random()*notHeld.length)];
+  }
+  const ids = Object.keys(companies);
+  return ids[Math.floor(Math.random()*ids.length)];
+}
+
+/* ---------------- scripted events ---------------- */
+
+function buildScriptedEvent(type, companies, holdings){
+  if(type==='excitement'){
+    const tid = pickTarget(companies,holdings,{preferHeld:true});
+    const owned = holdings[tid] && holdings[tid].shares>0;
+    return { type, scope:'single', targets:[tid], basePriceBefore:{[tid]:companies[tid].price}, pctChange:15,
+      title:'Your Investment Is Climbing', icon:'🚀', timed:false, decision:true,
+      message: owned ? `${companies[tid].name} just jumped 15%! Your position is up sharply today.`
+                     : `${companies[tid].name} just jumped 15%. You don't own any shares yet — but everyone's talking about it.`,
+      options: owned
+        ? [{id:'sell',label:'Sell and secure the profit',sub:'Lock in your gains now.'},{id:'hold',label:'Hold',sub:"Don't touch it — let it ride."},{id:'buy',label:'Buy more',sub:'Add to your winning position.'}]
+        : [{id:'buy',label:'Buy in now',sub:'Jump on the momentum.'},{id:'wait',label:'Wait and watch',sub:'See if it lasts before deciding.'}] };
+  }
+  if(type==='panic'){
+    const tid = pickTarget(companies,holdings,{preferHeld:true});
+    const owned = holdings[tid] && holdings[tid].shares>0;
+    return { type, scope:'single', targets:[tid], basePriceBefore:{[tid]:companies[tid].price}, pctChange:-20,
+      title:'Market Shock', icon:'⚠️', timed:true, timeLimit:10, decision:true,
+      message: owned ? `${companies[tid].name} has fallen sharply — down 20% today. Your position just lost value fast.`
+                     : `${companies[tid].name} just fell 20% in a single day. Steep drops like this rattle a lot of investors.`,
+      options: owned
+        ? [{id:'sell',label:'Sell everything',sub:'Cut your losses now.'},{id:'hold',label:'Hold',sub:'Ride it out and see what happens.'},{id:'buy',label:'Buy a little more',sub:'Buy the dip at a lower price.'}]
+        : [{id:'buy',label:'Buy the dip',sub:"Pick some up while it's cheap."},{id:'avoid',label:'Stay away',sub:"This one's too risky for now."}] };
+  }
+  if(type==='fomo'){
+    const tid = pickTarget(companies,holdings,{preferNotHeld:true});
+    return { type, scope:'single', targets:[tid], basePriceBefore:{[tid]:companies[tid].price}, pctChange:18,
+      title:'Everyone Is Talking About This', icon:'🔥', timed:true, timeLimit:10, decision:true,
+      message:`${companies[tid].name} is suddenly everywhere on social feeds. "This stock is going to the moon!" people are saying. It's already up 18% today.`,
+      options:[{id:'buy',label:'Invest now',sub:'Get in before it goes higher.'},{id:'wait',label:'Wait and watch',sub:'See if the hype is real first.'}] };
+  }
+  if(type==='badnews'){
+    const tid = pickTarget(companies,holdings,{preferHeld:true});
+    const owned = holdings[tid] && holdings[tid].shares>0;
+    return { type, scope:'single', targets:[tid], basePriceBefore:{[tid]:companies[tid].price}, pctChange:-12,
+      title:'Disappointing Results', icon:'📉', timed:false, decision:true,
+      message:`${companies[tid].name} just announced results that missed expectations. Shares dropped 12% on the news.`,
+      options: owned
+        ? [{id:'sell',label:'Sell',sub:'Move on from this one.'},{id:'hold',label:'Hold',sub:'Wait for more information.'},{id:'buy',label:'Buy more',sub:'Bet the reaction is overdone.'}]
+        : [{id:'buy',label:'Buy at the lower price',sub:'Bet on a rebound.'},{id:'avoid',label:'Steer clear',sub:'Let the dust settle first.'}] };
+  }
+  if(type==='diversification'){
+    const heldIds = Object.keys(holdings).filter(id=> holdings[id] && holdings[id].shares>0);
+    let tid = 'energyplus';
+    if(heldIds.length){ let best=heldIds[0],bestVal=-1; heldIds.forEach(id=>{ const val=holdings[id].shares*companies[id].price; if(val>bestVal){bestVal=val;best=id;} }); tid=best; }
+    const totalInvested = Object.keys(holdings).reduce((s,id)=> s + ((holdings[id]&&holdings[id].shares)||0)*companies[id].price, 0);
+    const weight = totalInvested>0 ? (((holdings[tid]&&holdings[tid].shares)||0)*companies[tid].price)/totalInvested : 0;
+    const heavy = weight>0.45;
+    const pct = heavy ? -28 : -15;
+    const owned = holdings[tid] && holdings[tid].shares>0;
+    return { type, scope:'single', targets:[tid], basePriceBefore:{[tid]:companies[tid].price}, pctChange:pct,
+      title:'Unexpected Company News', icon:'💥', timed:false, decision:true,
+      message: owned ? `${companies[tid].name} just had a scandal wipe out ${Math.abs(pct)}% of its value in one day.${heavy?' It happens to be a big chunk of your portfolio.':''}`
+                     : `${companies[tid].name} just had a scandal wipe out ${Math.abs(pct)}% of its value in one day.`,
+      options: owned
+        ? [{id:'sell',label:'Sell',sub:'Get out of this position.'},{id:'hold',label:'Hold',sub:'Wait it out.'}]
+        : [{id:'acknowledge',label:'Continue',sub:'Take note and move on.'}] };
+  }
+  if(type==='crash'){
+    const ids = Object.keys(companies); const basePriceBefore={};
+    ids.forEach(id=> basePriceBefore[id]=companies[id].price);
+    return { type, scope:'portfolio', targets:ids, basePriceBefore, pctChange:-18,
+      title:'Market Turbulence', icon:'🔴', timed:true, timeLimit:10, decision:true,
+      message:'Several major companies have reported disappointing results. The overall market has fallen sharply today.',
+      options:[{id:'sell',label:'Sell everything',sub:'Move fully to cash.'},{id:'hold',label:'Hold',sub:'Stay invested through the storm.'},{id:'buy',label:'Buy the dip',sub:'Add cash to your positions at lower prices.'}] };
+  }
+  if(type==='recovery'){
+    const ids = Object.keys(companies); const basePriceBefore={};
+    ids.forEach(id=> basePriceBefore[id]=companies[id].price);
+    return { type, scope:'portfolio', targets:ids, basePriceBefore, pctChange:12,
+      title:'Markets Bounce Back', icon:'🟢', timed:false, decision:false,
+      message:'After days of turbulence, the market is recovering today. Most companies are climbing back.', options:[] };
+  }
+  return null;
+}
+
+function buildFlashEvent(companies, holdings){
+  const ids = Object.keys(companies);
+  const heldIds = ids.filter(id=> holdings[id] && holdings[id].shares>0);
+  const spikeMode = heldIds.length>0 && Math.random()<0.5;
+  if(spikeMode){
+    const tid = heldIds[Math.floor(Math.random()*heldIds.length)];
+    const pct = rnd(10,16);
+    return { kind:'spike', targetId:tid, basePriceBefore:companies[tid].price, pctChange:pct, timeLimit:8,
+      title:'Flash Opportunity', icon:'⚡',
+      message:`${companies[tid].name} just spiked ${pct.toFixed(0)}% in the last few minutes. This window won't stay open long.`,
+      options:[{id:'sell',label:'Cash out now',sub:'Sell your position at the spike price.'},{id:'hold',label:'Hold on',sub:'Let it keep running.'}] };
+  }
+  const notHeld = ids.filter(id=> !holdings[id] || holdings[id].shares===0);
+  const pool = notHeld.length ? notHeld : ids;
+  const tid = pool[Math.floor(Math.random()*pool.length)];
+  const pct = -rnd(8,14);
+  return { kind:'dip', targetId:tid, basePriceBefore:companies[tid].price, pctChange:pct, timeLimit:8,
+    title:'Flash Opportunity', icon:'⚡',
+    message:`${companies[tid].name} just dipped ${Math.abs(pct).toFixed(0)}% for a few minutes — a brief entry point before it likely bounces back.`,
+    options:[{id:'buy',label:'Buy the quick dip',sub:'Invest a slice of your cash now.'},{id:'skip',label:'Let it pass',sub:'Sit this one out.'}] };
+}
+
+function defaultActionFor(evt){
+  if(!evt || !evt.options || !evt.options.length) return 'hold';
+  const pref = evt.options.find(o=>o.id==='hold') || evt.options.find(o=>o.id==='wait') || evt.options.find(o=>o.id==='skip') || evt.options[0];
+  return pref ? pref.id : 'hold';
+}
+
+/* ---------------- news ---------------- */
+
+function generateNews(companies, moves, evtTargets){
+  const news = [];
+  let mover=null, best=0;
+  Object.values(moves).forEach(m=>{
+    if(evtTargets && evtTargets.includes(m.id)) return;
+    if(Math.abs(m.pct) > best){ best=Math.abs(m.pct); mover=m; }
+  });
+  if(mover && best>=3){
+    const positive = mover.pct>=0;
+    const co = companies[mover.id];
+    const tmpl = positive ? NEWS_POS[Math.floor(Math.random()*NEWS_POS.length)] : NEWS_NEG[Math.floor(Math.random()*NEWS_NEG.length)];
+    news.push({ day:S.day, companyId:mover.id, ticker:co.ticker, text:tmpl.replace('{c}',co.name), sentiment: positive?'bullish':'bearish' });
+  }
+  if(Math.random()<0.42){
+    const ids = Object.keys(companies).filter(id=> !mover || id!==mover.id);
+    const rid = ids[Math.floor(Math.random()*ids.length)];
+    const co = companies[rid];
+    const bullish = Math.random()<0.5;
+    const reliable = Math.random()<0.7;
+    const tmpl = bullish ? RUMOR_POS[Math.floor(Math.random()*RUMOR_POS.length)] : RUMOR_NEG[Math.floor(Math.random()*RUMOR_NEG.length)];
+    news.push({ day:S.day, companyId:rid, ticker:co.ticker, text:tmpl.replace('{c}',co.name), sentiment: bullish?'rumor-bullish':'rumor-bearish' });
+    S.pendingBias[rid] = { sign: bullish?1:-1, reliable };
+  }
+  if(news.length===0){
+    const co = companies[Object.keys(companies)[Math.floor(Math.random()*Object.keys(companies).length)]];
+    news.push({ day:S.day, companyId:null, ticker:null, text:NEWS_NEUTRAL[Math.floor(Math.random()*NEWS_NEUTRAL.length)].replace('{c}',co.name), sentiment:'neutral' });
+  }
+  return news;
+}
+
+/* ---------------- state ---------------- */
+
+let S = null;
+let draft = { username:'', days:30 };
+let selectedCompanyId = null;
+let timerHandle = null, timerEvtRef = null, timerRemaining = 0;
+let lastTradeNote = null;
+
+function newGame(username, days){
+  return {
+    screen:'quiz', view:'market',
+    username: username || 'Investor', journeyDays: days,
+    day:1, cash:START_CASH,
+    companies: freshCompanies(),
+    holdings:{},
+    portfolioHistory:[{day:1,value:START_CASH}],
+    profile:null,
+    pendingEvent:null, _movesCache:{},
+    dailyReport:null,
+    decisionLog:[],
+    newsFeed:[],
+    pendingBias:{},
+    glossaryViewed:[],
+    lastDayPL:{amount:0,pct:0},
+    tradeCount:0,
+  };
+}
+
+function goto(screen){ S.screen = screen; render(); }
+
+/* ---------------- trading ---------------- */
+
+function buyStock(id, amount){
+  amount = Math.round(amount);
+  if(!amount || amount<=0 || amount>S.cash+0.01) return false;
+  const c = S.companies[id];
+  const h = S.holdings[id] || {shares:0,cost:0};
+  const shares = amount / c.price;
+  h.shares += shares; h.cost += amount;
+  S.holdings[id] = h; S.cash -= amount; S.tradeCount++;
+  lastTradeNote = { kind:'buy', name:c.name, amount, day:S.day };
+  saveGame();
+  return true;
+}
+
+function sellStock(id, shares){
+  const h = S.holdings[id];
+  if(!h || shares<=0 || shares>h.shares+1e-6) return false;
+  const c = S.companies[id];
+  const avg = avgCost(h);
+  const proceeds = shares * c.price;
+  const costBasis = avg * shares;
+  const realized = proceeds - costBasis;
+  h.shares -= shares; h.cost -= costBasis;
+  if(h.shares < 1e-6){ h.shares=0; h.cost=0; }
+  S.cash += proceeds; S.tradeCount++;
+  lastTradeNote = { kind:'sell', name:c.name, amount:proceeds, realized, day:S.day };
+  saveGame();
+  return true;
+}
+
+/* ---------------- day cycle ---------------- */
+
+function advanceDay(){
+  if(S.day >= S.journeyDays) return;
+  const nextDay = S.day + 1;
+  const moves = {};
+  const newCompanies = {};
+  Object.values(S.companies).forEach(c=>{
+    const bias = S.pendingBias[c.id];
+    const newPrice = stepPrice(c, bias);
+    const pct = ((newPrice-c.price)/c.price)*100;
+    newCompanies[c.id] = Object.assign({},c,{ price:newPrice, history:[...c.history,{day:nextDay,price:newPrice}] });
+    moves[c.id] = { id:c.id, name:c.name, pct };
+  });
+  S.pendingBias = {};
+
+  const scriptedType = SCRIPT_MAP[S.journeyDays] && SCRIPT_MAP[S.journeyDays][nextDay];
+  if(scriptedType){
+    const evt = buildScriptedEvent(scriptedType, S.companies, S.holdings);
+    if(evt){
+      evt.targets.forEach(tid=>{ newCompanies[tid] = Object.assign({}, S.companies[tid]); });
+      S.companies = newCompanies; S.day = nextDay; S.pendingEvent = evt; S._movesCache = moves;
+      goto(evt.decision ? 'event' : 'event');
+      if(!evt.decision){ resolveScriptedNonDecision(evt); }
+      return;
+    }
+  }
+
+  if(nextDay < S.journeyDays && Math.random() < 0.32){
+    const evt = buildFlashEvent(S.companies, S.holdings);
+    if(evt){
+      newCompanies[evt.targetId] = Object.assign({}, S.companies[evt.targetId]);
+      S.companies = newCompanies; S.day = nextDay; S.pendingEvent = evt; S._movesCache = moves;
+      goto('flash');
+      return;
+    }
+  }
+
+  S.companies = newCompanies; S.day = nextDay;
+  finishDay(moves, null, null);
+}
+
+function resolveScriptedNonDecision(evt){
+  // "recovery" style event: apply immediately with no choice
+  evt.targets.forEach(tid=>{
+    const before = evt.basePriceBefore[tid];
+    const pct = evt.pctChange + rnd(-5,5);
+    const c = S.companies[tid];
+    const newPrice = Math.max(2, before*(1+pct/100));
+    c.price = newPrice; c.history.push({day:S.day, price:newPrice});
+    S._movesCache[tid] = { id:tid, name:c.name, pct };
+  });
+  finishDay(S._movesCache, evt, { note:'Markets recovered across the board.', lessonTitle:'Markets move in cycles', lessonText:'Downturns are often followed by recoveries — though never on a guaranteed schedule.' });
+}
+
+function finishDay(moves, evt, decisionInfo){
+  const value = portfolioValue(S);
+  const prevValue = S.portfolioHistory[S.portfolioHistory.length-1].value;
+  S.portfolioHistory.push({day:S.day, value});
+  const change = value - prevValue;
+  const changePct = prevValue>0 ? (change/prevValue)*100 : 0;
+  S.lastDayPL = { amount:change, pct:changePct };
+
+  const news = generateNews(S.companies, moves, evt ? evt.targets : null);
+  news.forEach(n=> S.newsFeed.unshift(n));
+  if(S.newsFeed.length>50) S.newsFeed.length = 50;
+
+  const movesList = Object.values(moves)
+    .filter(m=> Math.abs(m.pct)>=3 || (evt && evt.targets && evt.targets.includes(m.id)))
+    .sort((a,b)=> Math.abs(b.pct)-Math.abs(a.pct)).slice(0,6);
+
+  S.dailyReport = {
+    day:S.day, movesList, value, change, changePct,
+    evtIcon: evt ? evt.icon : null, evtTitle: evt ? evt.title : null,
+    note: decisionInfo ? decisionInfo.note : null,
+    lessonTitle: decisionInfo ? decisionInfo.lessonTitle : null,
+    lessonText: decisionInfo ? decisionInfo.lessonText : null,
+  };
+  S.pendingEvent = null;
+  S.screen = (S.day >= S.journeyDays) ? 'final' : 'dailyUpdate';
+  saveGame();
+  render();
+}
+
+function resolveEvent(actionId){
+  const evt = S.pendingEvent;
+  if(!evt) return;
+  if(actionId==='__timeout__') actionId = defaultActionFor(evt);
+  let note = '';
+
+  if(evt.scope==='single'){
+    const tid = evt.targets[0];
+    const c = S.companies[tid];
+    const h = S.holdings[tid] || {shares:0,cost:0};
+    if(actionId==='sell'){
+      const proceeds = h.shares*c.price;
+      S.cash += proceeds; S.holdings[tid] = {shares:0,cost:0};
+      note = `You sold your ${c.name} shares for ${fmt$(proceeds)}.`;
+    } else if(actionId==='buy'){
+      const amount = Math.round(clamp(S.cash*0.22, Math.min(200,S.cash), S.cash));
+      if(amount>0){ const shares=amount/c.price; h.shares+=shares; h.cost+=amount; S.holdings[tid]=h; S.cash-=amount; note = `You invested an extra ${fmt$(amount)} in ${c.name}.`; }
+      else note = 'You had no cash left to invest.';
+    } else if(actionId==='hold'){ note = `You chose to hold your ${c.name} position.`; }
+    else if(actionId==='wait'){ note = `You decided to wait and watch ${c.name} from the sidelines.`; }
+    else if(actionId==='avoid'){ note = `You decided to stay away from ${c.name} for now.`; }
+    else if(actionId==='acknowledge'){ note = 'You took note of the news and kept moving.'; }
+  } else {
+    const ids = evt.targets;
+    if(actionId==='sell'){
+      let proceeds=0;
+      ids.forEach(id=>{ const h=S.holdings[id]; if(h&&h.shares>0){ proceeds += h.shares*S.companies[id].price; S.holdings[id]={shares:0,cost:0}; } });
+      S.cash += proceeds;
+      note = `You sold your entire portfolio for ${fmt$(proceeds)} and moved fully to cash.`;
+    } else if(actionId==='buy'){
+      const heldIds = ids.filter(id=> S.holdings[id] && S.holdings[id].shares>0);
+      const spread = heldIds.length ? heldIds : ['greentech','healthcore'];
+      const amount = Math.round(clamp(S.cash*0.25, Math.min(300,S.cash), S.cash));
+      const per = amount/spread.length;
+      spread.forEach(id=>{ const c=S.companies[id]; const h=S.holdings[id]||{shares:0,cost:0}; h.shares += per/c.price; h.cost += per; S.holdings[id]=h; });
+      S.cash -= amount;
+      note = `You invested an extra ${fmt$(amount)} spread across your positions while prices were down.`;
+    } else { note = 'You held your positions through the turbulence.'; }
+  }
+
+  const lessonKey = evt.type+':'+actionId;
+  const lesson = LESSONS[lessonKey] || { title:'Noted', text:'Every decision in investing comes with a trade-off.' };
+  S.decisionLog.push({ day:S.day, type:evt.type, action:actionId });
+
+  evt.targets.forEach(tid=>{
+    const before = evt.basePriceBefore[tid];
+    let pct = evt.pctChange; if(evt.scope==='portfolio') pct = evt.pctChange + rnd(-6,6);
+    const newPrice = Math.max(2, before*(1+pct/100));
+    const c = S.companies[tid];
+    c.price = newPrice; c.history.push({day:S.day, price:newPrice});
+    S._movesCache[tid] = { id:tid, name:c.name, pct };
+  });
+
+  finishDay(S._movesCache, evt, { note, lessonTitle:lesson.title, lessonText:lesson.text });
+}
+
+function resolveFlash(actionId){
+  const evt = S.pendingEvent;
+  if(!evt) return;
+  if(actionId==='__timeout__') actionId = (evt.kind==='dip') ? 'skip' : 'hold';
+  const tid = evt.targetId;
+  const c = S.companies[tid];
+  let note = '';
+
+  if(evt.kind==='dip'){
+    if(actionId==='buy'){
+      const amount = Math.round(clamp(S.cash*0.16, Math.min(150,S.cash), S.cash));
+      if(amount>0){ const h=S.holdings[tid]||{shares:0,cost:0}; h.shares += amount/c.price; h.cost += amount; S.holdings[tid]=h; S.cash-=amount; note = `You grabbed a quick ${fmt$(amount)} position in ${c.name} before the window closed.`; }
+      else note = 'You had no spare cash to act on it.';
+    } else note = `You let the ${c.name} dip pass by.`;
+  } else {
+    if(actionId==='sell'){
+      const h = S.holdings[tid] || {shares:0,cost:0};
+      const proceeds = h.shares*c.price;
+      S.cash += proceeds; S.holdings[tid] = {shares:0,cost:0};
+      note = `You cashed out of ${c.name} for ${fmt$(proceeds)} while it was hot.`;
+    } else note = `You held onto ${c.name} through the spike.`;
+  }
+
+  const lessonKey = 'flash-'+evt.kind+':'+actionId;
+  const lesson = LESSONS[lessonKey] || { title:'Quick decisions', text:'Fast-moving opportunities force a call with incomplete information.' };
+  S.decisionLog.push({ day:S.day, type:'flash-'+evt.kind, action:actionId });
+
+  const newPrice = Math.max(2, evt.basePriceBefore*(1+evt.pctChange/100));
+  c.price = newPrice; c.history.push({day:S.day, price:newPrice});
+  S._movesCache[tid] = { id:tid, name:c.name, pct:evt.pctChange };
+
+  finishDay(S._movesCache, evt, { note, lessonTitle:lesson.title, lessonText:lesson.text });
+}
+
+/* ---------------- quiz / profile ---------------- */
+
+function profileLabel(reaction, gGoal){
+  if(reaction==='panic') return 'Cautious Beginner';
+  if(reaction==='sell') return gGoal==='long' ? 'Careful Planner' : 'Cautious Beginner';
+  if(reaction==='wait') return gGoal==='short' ? 'Balanced Explorer' : 'Balanced Investor';
+  if(reaction==='buyMore') return gGoal==='short' ? 'Bold Beginner' : 'Growth-Oriented';
+  return 'Uncertain Beginner';
+}
+
+/* ---------------- charts (canvas) ---------------- */
+
+function drawLine(canvas, values, color, filled){
+  if(!canvas || !values || values.length<2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max-min) || 1;
+  const pad = 4;
+  const stepX = (w-pad*2) / (values.length-1);
+  const pts = values.map((v,i)=> [pad+i*stepX, pad + (h-pad*2) * (1 - (v-min)/range)]);
+  if(filled){
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, color+'55'); grad.addColorStop(1, color+'02');
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], h);
+    pts.forEach(p=> ctx.lineTo(p[0],p[1]));
+    ctx.lineTo(pts[pts.length-1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+  }
+  ctx.beginPath();
+  pts.forEach((p,i)=> i===0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]));
+  ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.stroke();
+}
+
+function drawAllCharts(){
+  document.querySelectorAll('[data-chart]').forEach(canvas=>{
+    const kind = canvas.getAttribute('data-chart');
+    const color = canvas.getAttribute('data-color') || '#D9A94E';
+    if(kind==='portfolio'){
+      drawLine(canvas, S.portfolioHistory.map(p=>p.value), color, true);
+    } else if(kind==='company'){
+      const cid = canvas.getAttribute('data-id');
+      drawLine(canvas, S.companies[cid].history.map(p=>p.price), color, true);
+    } else if(kind==='spark'){
+      const cid = canvas.getAttribute('data-id');
+      const hist = S.companies[cid].history.slice(-10).map(p=>p.price);
+      drawLine(canvas, hist.length>1?hist:[hist[0]||0,hist[0]||0], color, false);
+    }
+  });
+}
+
+/* ---------------- timer ---------------- */
+
+function stopTimer(){ if(timerHandle){ clearInterval(timerHandle); timerHandle=null; } timerEvtRef=null; }
+
+function ensureTimer(){
+  if(!S){ stopTimer(); return; }
+  const active = (S.screen==='event' && S.pendingEvent && S.pendingEvent.timed) || S.screen==='flash';
+  if(!active){ stopTimer(); return; }
+  if(timerEvtRef === S.pendingEvent) return;
+  stopTimer();
+  timerEvtRef = S.pendingEvent;
+  timerRemaining = S.pendingEvent.timeLimit || 10;
+  updateTimerDOM();
+  timerHandle = setInterval(()=>{
+    timerRemaining--;
+    updateTimerDOM();
+    if(timerRemaining<=0){
+      clearInterval(timerHandle); timerHandle=null;
+      if(S.screen==='flash') resolveFlash('__timeout__'); else resolveEvent('__timeout__');
+    }
+  },1000);
+}
+
+function updateTimerDOM(){
+  const num = document.getElementById('timerNum');
+  const bar = document.getElementById('timerBar');
+  const total = (S.pendingEvent && S.pendingEvent.timeLimit) || 10;
+  if(num) num.textContent = timerRemaining + 's';
+  if(bar) bar.style.width = Math.max(0,(timerRemaining/total)*100) + '%';
+}
+
+/* ---------------- render ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = screenHTML();
+  drawAllCharts();
+  ensureTimer();
+  window.scrollTo(0,0);
+}
+
+function screenHTML(){
+  if(!S) return welcomeScreen();
+  switch(S.screen){
+    case 'quiz': return quizScreen();
+    case 'intro': return introScreen();
+    case 'event': return eventScreen();
+    case 'flash': return flashScreen();
+    case 'dailyUpdate': return dailyUpdateScreen();
+    case 'company': return companyScreen();
+    case 'final': return finalScreen();
+    default: return hubScreen();
+  }
+}
+
+/* ---- welcome / setup ---- */
+
+function welcomeScreen(){
+  const hasSave = !!loadGame();
+  return `
+  <div class="scr fade-in" style="justify-content:space-between;">
+    <div>
+      <p class="mono" style="color:var(--gold); font-size:12.5px; letter-spacing:.02em; margin-bottom:8px;">A RISK-FREE TRADING SIMULATOR</p>
+      <h1 class="head-font" style="font-size:38px; line-height:1.05; margin-bottom:14px;">Market<br>Journey</h1>
+      <p style="color:var(--text-dim); font-size:15px; line-height:1.55; max-width:340px;">Start with fictional cash, ride real market swings, and learn how it feels to invest — before any of it is real.</p>
+    </div>
+    <div class="card" style="margin:26px 0;">
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--text-dim); font-size:13px;">Starting cash</span><span class="mono stat-num" style="font-size:16px;">${fmt$(START_CASH)}</span></div>
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--text-dim); font-size:13px;">Journey length</span><span class="mono" style="font-size:14px;">Your choice — 10, 15 or 30 days</span></div>
+      <div class="row"><span style="color:var(--text-dim); font-size:13px;">Difficulty</span><span class="pill pill-red">Hard · live turbulence</span></div>
+    </div>
+    <div>
+      ${hasSave ? `<button class="btn btn-primary btn-block" style="margin-bottom:10px;" onclick="continueSaved()">Continue your journey</button>` : ``}
+      <button class="btn ${hasSave?'btn-ghost':'btn-primary'} btn-block" onclick="goSetup()">${hasSave?'Start a new journey':'Begin'}</button>
+    </div>
+  </div>`;
+}
+
+function goSetup(){ draft = {username:'', days:30}; S = {screen:'setup'}; renderRaw(setupScreen()); }
+function continueSaved(){ const saved = loadGame(); if(saved){ S = saved; render(); } }
+function renderRaw(html){ document.getElementById('app').innerHTML = html; }
+
+function setupScreen(){
+  return `
+  <div class="scr fade-in" style="justify-content:space-between;">
+    <div>
+      <button class="btn-ghost" style="border-radius:10px; padding:8px 12px; font-size:13px; border:1px solid var(--border); background:var(--panel-2); margin-bottom:18px;" onclick="backToWelcome()">← Back</button>
+      <h2 class="head-font" style="font-size:26px; margin-bottom:6px;">Set up your journey</h2>
+      <p style="color:var(--text-dim); font-size:14px; margin-bottom:24px;">A couple of quick choices before you start trading.</p>
+
+      <label style="font-size:13px; font-weight:600; color:var(--text-dim); display:block; margin-bottom:8px;">Your trader name</label>
+      <input id="usernameInput" class="field field-text" placeholder="e.g. Alex" value="${escapeHtml(draft.username)}" maxlength="18" style="margin-bottom:22px;">
+
+      <label style="font-size:13px; font-weight:600; color:var(--text-dim); display:block; margin-bottom:8px;">Journey length</label>
+      <div class="seg" style="margin-bottom:10px;">
+        <button class="${draft.days===10?'on':''}" onclick="setDays(10)">10 days</button>
+        <button class="${draft.days===15?'on':''}" onclick="setDays(15)">15 days</button>
+        <button class="${draft.days===30?'on':''}" onclick="setDays(30)">30 days</button>
+      </div>
+      <p style="color:var(--text-dimmer); font-size:12.5px;">${daysBlurb(draft.days)}</p>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitSetup()">Continue</button>
+  </div>`;
+}
+function daysBlurb(d){
+  if(d===10) return 'A fast, intense sprint — big moments come quickly, with little time to recover.';
+  if(d===15) return 'A short journey with a handful of major swings to navigate.';
+  return 'The full journey — more time to recover from setbacks, but more turbulence overall.';
+}
+function backToWelcome(){ S=null; renderRaw(welcomeScreen()); }
+function setDays(d){ draft.days=d; renderRaw(setupScreen()); document.getElementById('usernameInput').focus(); }
+function submitSetup(){
+  const val = (document.getElementById('usernameInput').value||'').trim();
+  draft.username = val;
+  S = newGame(val, draft.days);
+  render();
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+/* ---- quiz ---- */
+
+let quizState = { reaction:null, goal:null };
+function quizScreen(){
+  const reactionOpts = [
+    {id:'panic', label:'I would panic and sell right away'},
+    {id:'sell', label:'I would probably sell some'},
+    {id:'wait', label:'I would wait'},
+    {id:'buyMore', label:'I might buy more'},
+  ];
+  const goalOpts = [{id:'short',label:'Short-term'},{id:'medium',label:'Medium-term'},{id:'long',label:'Long-term'}];
+  return `
+  <div class="scr fade-in" style="justify-content:space-between;">
+    <div>
+      <h2 class="head-font" style="font-size:24px; margin-bottom:6px;">Meet your investor</h2>
+      <p style="color:var(--text-dim); font-size:14px; margin-bottom:22px;">Two quick questions — there are no wrong answers.</p>
+      <p style="font-weight:700; margin-bottom:10px; font-size:14.5px;">How would you react if your investment lost 20%?</p>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:22px;">
+        ${reactionOpts.map(o=>`<button class="opt-btn" style="margin-bottom:0; ${quizState.reaction===o.id?'border-color:var(--gold); background:var(--gold-soft);':''}" onclick="setQuizReaction('${o.id}')"><span class="lbl">${o.label}</span></button>`).join('')}
+      </div>
+      <p style="font-weight:700; margin-bottom:10px; font-size:14.5px;">What is your investment goal?</p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${goalOpts.map(o=>`<button class="opt-btn" style="margin-bottom:0; ${quizState.goal===o.id?'border-color:var(--gold); background:var(--gold-soft);':''}" onclick="setQuizGoal('${o.id}')"><span class="lbl">${o.label}</span></button>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:22px;" ${(!quizState.reaction||!quizState.goal)?'disabled':''} onclick="submitQuiz()">Continue</button>
+  </div>`;
+}
+function setQuizReaction(id){ quizState.reaction=id; render(); }
+function setQuizGoal(id){ quizState.goal=id; render(); }
+function submitQuiz(){
+  if(!quizState.reaction||!quizState.goal) return;
+  S.profile = { reaction:quizState.reaction, goal:quizState.goal, label:profileLabel(quizState.reaction,quizState.goal) };
+  quizState = {reaction:null,goal:null};
+  S.screen = 'intro';
+  saveGame(); render();
+}
+
+/* ---- intro ---- */
+
+function introScreen(){
+  return `
+  <div class="scr fade-in" style="justify-content:space-between;">
+    <div>
+      <div class="card" style="margin-bottom:20px;">
+        <p class="mono" style="font-size:11.5px; color:var(--gold); margin-bottom:4px;">YOUR INVESTOR TYPE</p>
+        <h3 class="head-font" style="font-size:20px;">${S.profile.label}</h3>
+        <p style="color:var(--text-dim); font-size:13px; margin-top:8px;">This isn't a professional assessment — just a starting point. It may change as you play.</p>
+      </div>
+      <h2 class="head-font" style="font-size:24px; margin-bottom:10px;">Hi ${escapeHtml(S.username)}, here's ${fmt$(START_CASH)}</h2>
+      <p style="color:var(--text-dim); font-size:14.5px; line-height:1.6; margin-bottom:18px;">You're starting with fictional money for a ${S.journeyDays}-day journey. Buy stocks, hold cash, or sell as things change.</p>
+      <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; font-size:13.5px; color:var(--text-dim);">
+        <li>📈 Prices move every day, for real reasons and random ones.</li>
+        <li>📰 News and rumors hint at what might come next — but they aren't always right.</li>
+        <li>⏱️ Some moments demand a fast call — a countdown will appear.</li>
+        <li>🎯 At the end, you'll see how your decisions shaped your journey.</li>
+      </ul>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:22px;" onclick="S.screen='market'; enterMarket()">Enter the market</button>
+  </div>`;
+}
+function enterMarket(){ S.screen='hub'; S.view='market'; saveGame(); render(); }
+
+/* ---- hub shell (ticker + navbar wrapper) ---- */
+
+function hubScreen(){
+  const latestNews = S.newsFeed[0];
+  return `
+  <div class="fade-in">
+    <div class="ticker-wrap">
+      <div class="ticker-track">
+        <span>${latestNews ? '📰 '+escapeHtml(latestNews.text) : 'Markets open — good luck out there.'}</span>
+        <span>${latestNews ? '📰 '+escapeHtml(latestNews.text) : 'Markets open — good luck out there.'}</span>
+      </div>
+    </div>
+    <div class="scr scr-tight" style="padding-top:16px;">
+      ${S.view==='market' ? marketView() : S.view==='portfolio' ? portfolioView() : S.view==='news' ? newsView() : learnView()}
+    </div>
+    <div class="navbar">
+      ${navBtn('market','📊','Market')}
+      ${navBtn('portfolio','💼','Portfolio')}
+      ${navBtn('news','📰','News')}
+      ${navBtn('learn','📘','Learn')}
+    </div>
+  </div>`;
+}
+function navBtn(id,icon,label){
+  return `<button class="navbtn ${S.view===id?'active':''}" onclick="setView('${id}')"><span class="ic">${icon}</span>${label}</button>`;
+}
+function setView(v){ S.view=v; render(); }
+
+/* ---- market view ---- */
+
+function marketView(){
+  const value = portfolioValue(S);
+  const invested = investedTotal(S);
+  const pl = S.lastDayPL;
+  const positive = pl.amount>=0;
+  return `
+    <div class="row" style="margin-bottom:2px;">
+      <h2 class="head-font" style="font-size:21px;">Hi, ${escapeHtml(S.username)}</h2>
+      <span class="mono" style="font-size:13px; color:var(--text-dim);">Day ${S.day} / ${S.journeyDays}</span>
+    </div>
+    <div class="progress-track" style="margin:10px 0 16px;"><div class="progress-fill" style="width:${(S.day/S.journeyDays)*100}%"></div></div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px;">Total portfolio value</p>
+      <p class="head-font stat-num" style="font-size:34px; margin-bottom:10px;">${fmt$(value)}</p>
+      <div class="row" style="margin-bottom:14px;">
+        <span class="pill ${positive?'pill-green':'pill-red'}">${positive?'▲':'▼'} ${fmt$(Math.abs(pl.amount))} (${fmtPct(pl.pct)}) today</span>
+      </div>
+      <canvas data-chart="portfolio" data-color="#D9A94E" style="height:70px; margin-bottom:12px;"></canvas>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="background:var(--panel-2); border-radius:12px; padding:10px 12px;"><p style="font-size:11.5px; color:var(--text-dim);">Cash</p><p class="mono" style="font-weight:600; font-size:15px;">${fmt$(S.cash)}</p></div>
+        <div style="background:var(--panel-2); border-radius:12px; padding:10px 12px;"><p style="font-size:11.5px; color:var(--text-dim);">Invested</p><p class="mono" style="font-weight:600; font-size:15px;">${fmt$(invested)}</p></div>
+      </div>
+    </div>
+
+    <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;">Companies</p>
+    <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:16px;">
+      ${Object.values(S.companies).map(companyRow).join('')}
+    </div>
+
+    <button class="btn btn-primary btn-block" onclick="advanceDay()">${S.day>=S.journeyDays?'Journey complete':'Advance to day '+(S.day+1)} →</button>
+  `;
+}
+
+function companyRow(c){
+  const h = S.holdings[c.id];
+  const shares = h ? h.shares : 0;
+  const hist = c.history;
+  const dayChangePct = hist.length>=2 ? ((c.price-hist[hist.length-2].price)/hist[hist.length-2].price)*100 : 0;
+  const positive = dayChangePct>=0;
+  let plLine = '';
+  if(shares>0.0001){
+    const avg = avgCost(h);
+    const upl = (c.price-avg)*shares;
+    const uplPct = avg>0 ? ((c.price-avg)/avg)*100 : 0;
+    plLine = `<p style="font-size:11.5px; margin-top:2px; color:${upl>=0?'var(--green)':'var(--red)'};">${shares.toFixed(2)} sh @ avg ${fmt$(avg)} · ${upl>=0?'+':''}${fmt$(upl)} (${fmtPct(uplPct)})</p>`;
+  }
+  return `
+  <button class="company-row" onclick="openCompany('${c.id}')">
+    <div class="co-icon">${c.emoji}</div>
+    <div style="flex:1; min-width:0;">
+      <div class="row"><span style="font-weight:700; font-size:14.5px;">${c.name} <span class="mono" style="color:var(--text-dimmer); font-size:11.5px;">${c.ticker}</span></span></div>
+      <p style="font-size:11.5px; color:var(--text-dim);">${c.sector}</p>
+      ${plLine}
+    </div>
+    <div style="text-align:right; flex-shrink:0;">
+      <p class="mono" style="font-weight:700; font-size:15px;">${fmt$(c.price)}</p>
+      <p class="mono" style="font-size:12px; font-weight:600; color:${positive?'var(--green)':'var(--red)'};">${fmtPct(dayChangePct)}</p>
+      <div style="width:64px; height:26px; margin-top:2px;"><canvas data-chart="spark" data-id="${c.id}" data-color="${positive?'#33D693':'#F0596B'}" style="height:26px;"></canvas></div>
+    </div>
+  </button>`;
+}
+
+function openCompany(id){ selectedCompanyId=id; tradeDraft={mode:'buy', amount:'', shares:''}; S.screen='company'; render(); }
+function backToHub(){ S.screen='hub'; render(); }
+
+/* ---- company screen ---- */
+
+let tradeDraft = {mode:'buy', amount:'', shares:''};
+
+function companyScreen(){
+  const c = S.companies[selectedCompanyId];
+  const h = S.holdings[selectedCompanyId] || {shares:0,cost:0};
+  const avg = avgCost(h);
+  const upl = (c.price-avg)*h.shares;
+  const uplPct = avg>0 ? ((c.price-avg)/avg)*100 : 0;
+  const hist = c.history;
+  const dayChangePct = hist.length>=2 ? ((c.price-hist[hist.length-2].price)/hist[hist.length-2].price)*100 : 0;
+  const positive = dayChangePct>=0;
+
+  return `
+  <div class="scr fade-in">
+    <button class="btn-ghost" style="border-radius:10px; padding:7px 12px; font-size:13px; border:1px solid var(--border); align-self:flex-start; margin-bottom:16px;" onclick="backToHub()">← Back</button>
+
+    <div class="row" style="margin-bottom:2px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="co-icon" style="width:44px;height:44px;font-size:22px;">${c.emoji}</div>
+        <div><h2 class="head-font" style="font-size:20px;">${c.name}</h2><p class="mono" style="font-size:12px; color:var(--text-dimmer);">${c.ticker} · ${c.sector}</p></div>
+      </div>
+    </div>
+    <div class="row" style="margin:14px 0 6px;">
+      <p class="head-font stat-num" style="font-size:28px;">${fmt$(c.price)}</p>
+      <span class="pill ${positive?'pill-green':'pill-red'}">${fmtPct(dayChangePct)} today</span>
+    </div>
+    <canvas data-chart="company" data-id="${c.id}" data-color="${c.color}" style="height:140px; margin:8px 0 16px;"></canvas>
+
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:13.5px; color:var(--text-dim); line-height:1.5; margin-bottom:10px;">${c.desc}</p>
+      <span class="pill pill-gold">Risk: ${c.risk}</span>
+    </div>
+
+    ${h.shares>0.0001 ? `
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;">Your position</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <div><p style="font-size:11.5px; color:var(--text-dim);">Shares</p><p class="mono" style="font-weight:600;">${h.shares.toFixed(3)}</p></div>
+        <div><p style="font-size:11.5px; color:var(--text-dim);">Avg buy price</p><p class="mono" style="font-weight:600;">${fmt$(avg)}</p></div>
+      </div>
+      <div class="row">
+        <span style="font-size:12.5px; color:var(--text-dim);">Unrealized P/L</span>
+        <span class="mono" style="font-weight:700; color:${upl>=0?'var(--green)':'var(--red)'};">${upl>=0?'+':''}${fmt$(upl)} (${fmtPct(uplPct)})</span>
+      </div>
+    </div>` : ``}
+
+    <div class="seg" style="margin-bottom:14px;">
+      <button class="${tradeDraft.mode==='buy'?'on':''}" onclick="setTradeMode('buy')">Buy</button>
+      <button class="${tradeDraft.mode==='sell'?'on':''}" onclick="setTradeMode('sell')">Sell</button>
+    </div>
+
+    ${tradeDraft.mode==='buy' ? buyPanel(c) : sellPanel(c,h)}
+  </div>`;
+}
+function setTradeMode(m){ tradeDraft.mode=m; tradeDraft.amount=''; tradeDraft.shares=''; render(); }
+
+function buyPanel(c){
+  const cash = S.cash;
+  return `
+  <div class="card">
+    <p style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">Amount to invest (cash available: ${fmt$(cash)})</p>
+    <input id="buyAmount" class="field" type="number" min="0" placeholder="0" value="${tradeDraft.amount}" oninput="tradeDraft.amount=this.value">
+    <div style="display:flex; gap:8px; margin:10px 0 14px;">
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickAmount(0.25)">25%</button>
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickAmount(0.5)">50%</button>
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickAmount(1)">Max</button>
+    </div>
+    <button class="btn btn-buy btn-block" onclick="doBuy('${c.id}')">Buy ${c.name}</button>
+  </div>`;
+}
+function sellPanel(c,h){
+  if(h.shares<=0.0001) return `<div class="card"><p style="color:var(--text-dim); font-size:13.5px;">You don't own any ${c.name} shares yet.</p></div>`;
+  return `
+  <div class="card">
+    <p style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">Shares to sell (you own ${h.shares.toFixed(3)})</p>
+    <input id="sellShares" class="field" type="number" min="0" step="0.01" placeholder="0" value="${tradeDraft.shares}" oninput="tradeDraft.shares=this.value">
+    <div style="display:flex; gap:8px; margin:10px 0 14px;">
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickShares(0.25)">25%</button>
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickShares(0.5)">50%</button>
+      <button class="btn btn-ghost" style="flex:1; padding:8px; font-size:12.5px;" onclick="quickShares(1)">All</button>
+    </div>
+    <button class="btn btn-danger btn-block" onclick="doSell('${c.id}')">Sell ${c.name}</button>
+  </div>`;
+}
+function quickAmount(frac){ tradeDraft.amount = Math.floor(S.cash*frac); render(); }
+function quickShares(frac){ const h=S.holdings[selectedCompanyId]; tradeDraft.shares = h ? +(h.shares*frac).toFixed(4) : 0; render(); }
+function doBuy(id){ const amt=parseFloat(tradeDraft.amount); if(!amt||amt<=0) return; buyStock(id,amt); tradeDraft.amount=''; render(); }
+function doSell(id){ const sh=parseFloat(tradeDraft.shares); if(!sh||sh<=0) return; sellStock(id,sh); tradeDraft.shares=''; render(); }
+
+/* ---- event / flash screens ---- */
+
+function eventScreen(){
+  const evt = S.pendingEvent;
+  return `
+  <div class="scr fade-in" style="justify-content:center; text-align:center;">
+    <div style="font-size:44px; margin-bottom:10px;">${evt.icon}</div>
+    <h2 class="head-font" style="font-size:23px; margin-bottom:12px;">${evt.title}</h2>
+    <p style="color:var(--text-dim); font-size:14.5px; line-height:1.6; margin-bottom:20px;">${evt.message}</p>
+    ${evt.timed ? `
+      <div class="row" style="justify-content:center; gap:8px; margin-bottom:4px;"><span style="font-size:12.5px; color:var(--text-dim);">Decide within</span><span id="timerNum" class="mono" style="font-weight:700; color:var(--red);"></span></div>
+      <div class="timerbar-track" style="margin-bottom:22px;"><div id="timerBar" class="timerbar-fill" style="width:100%;"></div></div>
+    ` : `<div style="margin-bottom:14px;"></div>`}
+    <div style="text-align:left;">
+      ${evt.options.map(o=>`<button class="opt-btn" onclick="resolveEvent('${o.id}')"><div class="lbl">${o.label}</div><div class="sub">${o.sub}</div></button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function flashScreen(){
+  const evt = S.pendingEvent;
+  return `
+  <div class="scr fade-in" style="justify-content:center; text-align:center;">
+    <div style="font-size:44px; margin-bottom:10px;">${evt.icon}</div>
+    <p class="pill pill-gold" style="margin-bottom:10px;">Flash opportunity</p>
+    <h2 class="head-font" style="font-size:22px; margin-bottom:12px;">${evt.title}</h2>
+    <p style="color:var(--text-dim); font-size:14.5px; line-height:1.6; margin-bottom:20px;">${evt.message}</p>
+    <div class="row" style="justify-content:center; gap:8px; margin-bottom:4px;"><span style="font-size:12.5px; color:var(--text-dim);">Window closes in</span><span id="timerNum" class="mono" style="font-weight:700; color:var(--red);"></span></div>
+    <div class="timerbar-track" style="margin-bottom:22px;"><div id="timerBar" class="timerbar-fill" style="width:100%;"></div></div>
+    <div style="text-align:left;">
+      ${evt.options.map(o=>`<button class="opt-btn" onclick="resolveFlash('${o.id}')"><div class="lbl">${o.label}</div><div class="sub">${o.sub}</div></button>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ---- daily update ---- */
+
+function dailyUpdateScreen(){
+  const r = S.dailyReport;
+  const positive = r.change>=0;
+  return `
+  <div class="scr fade-in" style="justify-content:space-between;">
+    <div>
+      <p class="mono" style="font-size:12px; color:var(--text-dim); margin-bottom:4px;">DAY ${r.day} RECAP</p>
+      <h2 class="head-font" style="font-size:24px; margin-bottom:14px;">${positive?'A green day':'A rough day'}</h2>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="row" style="margin-bottom:4px;"><span style="font-size:13px; color:var(--text-dim);">Portfolio value</span><span class="mono" style="font-weight:700; font-size:17px;">${fmt$(r.value)}</span></div>
+        <div class="row"><span style="font-size:13px; color:var(--text-dim);">Today's P/L</span><span class="pill ${positive?'pill-green':'pill-red'}">${positive?'+':''}${fmt$(r.change)} (${fmtPct(r.changePct)})</span></div>
+      </div>
+
+      ${r.evtTitle ? `
+      <div class="card" style="margin-bottom:16px; border-color:var(--gold);">
+        <p style="font-size:20px; margin-bottom:6px;">${r.evtIcon||''} <span class="head-font" style="font-size:15px;">${r.evtTitle}</span></p>
+        ${r.note ? `<p style="font-size:13.5px; color:var(--text-dim); margin-bottom:10px;">${r.note}</p>` : ``}
+        ${r.lessonTitle ? `<div class="divider" style="margin:10px 0;"></div><p style="font-size:12.5px; font-weight:700; color:var(--gold); margin-bottom:4px;">💡 ${r.lessonTitle}</p><p style="font-size:13px; color:var(--text-dim); line-height:1.5;">${r.lessonText}</p>` : ``}
+      </div>` : ``}
+
+      ${r.movesList.length ? `
+      <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;">Notable moves</p>
+      <div class="card" style="margin-bottom:16px;">
+        ${r.movesList.map(m=>`<div class="row" style="padding:7px 0; ${m!==r.movesList[r.movesList.length-1]?'border-bottom:1px solid var(--border);':''}"><span style="font-size:13.5px;">${m.name}</span><span class="mono" style="font-weight:600; color:${m.pct>=0?'var(--green)':'var(--red)'};">${fmtPct(m.pct)}</span></div>`).join('')}
+      </div>` : ``}
+
+      ${S.newsFeed[0] ? `
+      <div class="card">
+        <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;">Latest headline</p>
+        <p style="font-size:13.5px; line-height:1.5;">${newsIcon(S.newsFeed[0].sentiment)} ${S.newsFeed[0].text}</p>
+      </div>` : ``}
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:18px;" onclick="continueFromDaily()">Continue</button>
+  </div>`;
+}
+function continueFromDaily(){ S.screen='hub'; S.view='market'; render(); }
+
+/* ---- portfolio view ---- */
+
+function portfolioView(){
+  const value = portfolioValue(S);
+  const invested = investedTotal(S);
+  const totalReturn = value-START_CASH;
+  const totalReturnPct = (totalReturn/START_CASH)*100;
+  const held = Object.keys(S.holdings).filter(id=> S.holdings[id].shares>0.0001);
+  return `
+    <h2 class="head-font" style="font-size:21px; margin-bottom:14px;">Portfolio</h2>
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:12px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Total value</p>
+      <p class="head-font stat-num" style="font-size:28px; margin-bottom:6px;">${fmt$(value)}</p>
+      <span class="pill ${totalReturn>=0?'pill-green':'pill-red'}">${totalReturn>=0?'+':''}${fmt$(totalReturn)} (${fmtPct(totalReturnPct)}) since start</span>
+      <canvas data-chart="portfolio" data-color="#D9A94E" style="height:90px; margin-top:14px;"></canvas>
+    </div>
+
+    <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; margin-bottom:8px;">Allocation</p>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex; height:14px; border-radius:8px; overflow:hidden; margin-bottom:12px;">
+        <div style="width:${(S.cash/value)*100}%; background:var(--gold);"></div>
+        ${held.map(id=>`<div style="width:${(S.holdings[id].shares*S.companies[id].price/value)*100}%; background:${S.companies[id].color};"></div>`).join('')}
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <span style="font-size:12px; display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold); display:inline-block;"></span>Cash ${fmt$(S.cash)}</span>
+        ${held.map(id=>`<span style="font-size:12px; display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${S.companies[id].color}; display:inline-block;"></span>${S.companies[id].name}</span>`).join('')}
+      </div>
+    </div>
+
+    <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; margin-bottom:8px;">Holdings</p>
+    ${held.length ? `<div style="display:flex; flex-direction:column; gap:9px; margin-bottom:16px;">${held.map(id=>holdingRow(id)).join('')}</div>` : `<div class="card" style="margin-bottom:16px;"><p style="color:var(--text-dim); font-size:13.5px;">No open positions yet — visit a company on the Market tab to invest.</p></div>`}
+
+    <p style="font-size:12px; font-weight:700; color:var(--text-dimmer); text-transform:uppercase; margin-bottom:8px;">Decision log</p>
+    <div class="card">
+      ${S.decisionLog.length ? S.decisionLog.slice().reverse().slice(0,10).map(d=>`<div class="row" style="padding:6px 0; border-bottom:1px solid var(--border);"><span style="font-size:12.5px; color:var(--text-dim);">Day ${d.day} · ${d.type}</span><span class="mono" style="font-size:12px; font-weight:600;">${d.action}</span></div>`).join('') : `<p style="color:var(--text-dim); font-size:13px;">No major decisions yet.</p>`}
+    </div>
+  `;
+}
+function holdingRow(id){
+  const c = S.companies[id]; const h = S.holdings[id];
+  const avg = avgCost(h); const upl = (c.price-avg)*h.shares; const uplPct = avg>0?((c.price-avg)/avg)*100:0;
+  return `
+  <button class="company-row" onclick="openCompany('${id}')">
+    <div class="co-icon">${c.emoji}</div>
+    <div style="flex:1;">
+      <p style="font-weight:700; font-size:14px;">${c.name}</p>
+      <p style="font-size:11.5px; color:var(--text-dim);">${h.shares.toFixed(3)} sh @ avg ${fmt$(avg)}</p>
+    </div>
+    <div style="text-align:right;">
+      <p class="mono" style="font-weight:700;">${fmt$(h.shares*c.price)}</p>
+      <p class="mono" style="font-size:12px; color:${upl>=0?'var(--green)':'var(--red)'};">${upl>=0?'+':''}${fmt$(upl)} (${fmtPct(uplPct)})</p>
+    </div>
+  </button>`;
+}
+
+/* ---- news view ---- */
+
+function newsIcon(sentiment){
+  if(sentiment==='bullish') return '🟢';
+  if(sentiment==='bearish') return '🔴';
+  if(sentiment==='rumor-bullish') return '💬';
+  if(sentiment==='rumor-bearish') return '💬';
+  return '⚪';
+}
+function newsView(){
+  return `
+    <h2 class="head-font" style="font-size:21px; margin-bottom:6px;">News</h2>
+    <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px;">Headlines explain what already happened. Rumors hint — not guarantee — what might come next.</p>
+    <div class="card">
+      ${S.newsFeed.length ? S.newsFeed.map(n=>`
+        <div class="news-item">
+          <span class="news-dot" style="background:${n.sentiment.includes('bull')||n.sentiment==='bullish'?'var(--green)':n.sentiment.includes('bear')||n.sentiment==='bearish'?'var(--red)':'var(--text-dimmer)'};"></span>
+          <div>
+            <p style="font-size:13.5px; line-height:1.45;">${n.text}</p>
+            <p class="mono" style="font-size:11px; color:var(--text-dimmer); margin-top:3px;">Day ${n.day}${n.ticker?' · '+n.ticker:''}${n.sentiment.startsWith('rumor')?' · rumor':''}</p>
+          </div>
+        </div>`).join('') : `<p style="color:var(--text-dim); font-size:13.5px;">No headlines yet — check back after the next trading day.</p>`}
+    </div>
+  `;
+}
+
+/* ---- learn view ---- */
+
+function learnView(){
+  return `
+    <h2 class="head-font" style="font-size:21px; margin-bottom:6px;">Learn</h2>
+    <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px;">Tap a term to reveal what it means. Viewed ${S.glossaryViewed.length}/${GLOSSARY.length}.</p>
+    <div style="display:flex; flex-direction:column; gap:9px;">
+      ${GLOSSARY.map(g=>`
+        <button class="opt-btn" style="margin-bottom:0;" onclick="viewTerm('${g.id}')">
+          <div class="row"><span class="lbl">${g.term}</span>${S.glossaryViewed.includes(g.id)?'<span style="color:var(--gold); font-size:12px;">✓</span>':''}</div>
+          ${S.glossaryViewed.includes(g.id) ? `<div class="sub" style="margin-top:6px;">${g.def}</div>` : `<div class="sub">Tap to reveal</div>`}
+        </button>`).join('')}
+    </div>
+  `;
+}
+function viewTerm(id){ if(!S.glossaryViewed.includes(id)) S.glossaryViewed.push(id); saveGame(); render(); }
+
+/* ---- final screen ---- */
+
+function gradeFor(diff){
+  if(diff>15) return {grade:'A', text:'An excellent run — your decisions clearly beat simply buying and holding the market.'};
+  if(diff>5) return {grade:'B', text:'A solid run, ahead of the average market move over your journey.'};
+  if(diff>-5) return {grade:'C', text:'A middling run — close to what the overall market did.'};
+  if(diff>-15) return {grade:'D', text:'A tough run — your choices trailed the broader market this time.'};
+  return {grade:'F', text:'A rough journey — but every setback here is one you never had to pay for in real life.'};
+}
+
+function finalScreen(){
+  const value = portfolioValue(S);
+  const totalReturn = value-START_CASH;
+  const totalReturnPct = (totalReturn/START_CASH)*100;
+  const benchReturn = COMPANIES.reduce((s,c)=> s + ((S.companies[c.id].price-c.basePrice)/c.basePrice)*100, 0)/COMPANIES.length;
+  const g = gradeFor(totalReturnPct-benchReturn);
+  let bestDay=0, worstDay=0;
+  for(let i=1;i<S.portfolioHistory.length;i++){
+    const d = S.portfolioHistory[i].value - S.portfolioHistory[i-1].value;
+    if(d>bestDay) bestDay=d; if(d<worstDay) worstDay=d;
+  }
+  return `
+  <div class="scr fade-in" style="justify-content:space-between; text-align:center;">
+    <div>
+      <p class="mono" style="font-size:12px; color:var(--gold); margin-bottom:6px;">JOURNEY COMPLETE</p>
+      <h2 class="head-font" style="font-size:26px; margin-bottom:4px;">Well played, ${escapeHtml(S.username)}</h2>
+      <p style="color:var(--text-dim); font-size:13.5px; margin-bottom:20px;">Here's how your ${S.journeyDays}-day journey went.</p>
+
+      <div class="card" style="margin-bottom:14px;">
+        <p style="font-size:12px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Final portfolio value</p>
+        <p class="head-font stat-num" style="font-size:32px; margin-bottom:8px;">${fmt$(value)}</p>
+        <span class="pill ${totalReturn>=0?'pill-green':'pill-red'}">${totalReturn>=0?'+':''}${fmt$(totalReturn)} (${fmtPct(totalReturnPct)})</span>
+        <canvas data-chart="portfolio" data-color="#D9A94E" style="height:90px; margin-top:14px;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="row" style="margin-bottom:10px;"><span style="font-size:38px; font-weight:800;" class="head-font">${g.grade}</span><span class="pill pill-gold">Investor grade</span></div>
+        <p style="font-size:13px; color:var(--text-dim); text-align:left; line-height:1.55;">${g.text}</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+        <div class="card"><p style="font-size:11.5px; color:var(--text-dim);">Best day</p><p class="mono" style="font-weight:700; color:var(--green);">+${fmt$(bestDay)}</p></div>
+        <div class="card"><p style="font-size:11.5px; color:var(--text-dim);">Worst day</p><p class="mono" style="font-weight:700; color:var(--red);">${fmt$(worstDay)}</p></div>
+        <div class="card"><p style="font-size:11.5px; color:var(--text-dim);">Trades made</p><p class="mono" style="font-weight:700;">${S.tradeCount}</p></div>
+        <div class="card"><p style="font-size:11.5px; color:var(--text-dim);">Big decisions</p><p class="mono" style="font-weight:700;">${S.decisionLog.length}</p></div>
+      </div>
+
+      <div class="card" style="text-align:left;">
+        <p style="font-size:12px; color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;">Investor type</p>
+        <p style="font-weight:700; margin-bottom:4px;">${S.profile ? S.profile.label : '—'}</p>
+        <p style="font-size:12.5px; color:var(--text-dim);">Compare that to how you actually played — did your trades match your instincts?</p>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:20px;" onclick="restartGame()">Play again</button>
+  </div>`;
+}
+function restartGame(){ clearSave(); S=null; renderRaw(welcomeScreen()); }
+
+/* ---------------- boot ---------------- */
+
+const saved = loadGame();
+if(saved){ S = saved; }
+render();
+</script>
+</body>
+</html>
